@@ -1,0 +1,24 @@
+  File: /home/user1
+  Size: 4096      	Blocks: 8          IO Block: 4096   directory
+Device: 253,2	Inode: 393226      Links: 2
+Access: (0755/drwxr-xr-x)  Uid: ( 1234/   user1)   Gid: ( 1004/students)
+Access: 2026-10-11 00:49:01.353866410 +0000
+Modify: 2026-10-11 18:19:16.864502470 +0000
+Change: 2026-10-11 19:01:29.046583448 +0000
+ Birth: 2026-10-11 00:49:01.353866410 +0000
+  File: /home/user1/my_cat
+  Size: 39384     	Blocks: 80         IO Block: 4096   regular file
+Device: 253,2	Inode: 393255      Links: 1
+Access: (4755/-rwsr-xr-x)  Uid: (    0/    root)   Gid: (    0/    root)
+Access: 2026-10-11 12:49:55.767571312 +0000
+Modify: 2026-10-11 12:46:43.720353233 +0000
+Change: 2026-10-11 12:47:19.905597250 +0000
+ Birth: 2026-10-11 12:46:43.720353233 +0000
+  File: /home/user1/my_chown
+  Size: 59912     	Blocks: 120        IO Block: 4096   regular file
+Device: 253,2	Inode: 393282      Links: 1
+Access: (0755/-rwxr-xr-x)  Uid: ( 1234/   user1)   Gid: ( 1004/students)
+Access: 2026-10-11 18:19:50.660237661 +0000
+Modify: 2026-10-11 18:05:07.885104686 +0000
+Change: 2026-10-11 18:06:13.970137879 +0000
+ Birth: 2026-10-11 18:05:07.885104686 +0000

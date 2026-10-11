@@ -1,0 +1,110 @@
+   1     32  # Проверяем sudo и доустанавливаем утилиты для работы с capabilities (setcap/getcap)
+   2     33  sudo apt update && sudo apt install -y libcap2-bin git
+   3     34  # 1. Создаём группу students
+   4     35  sudo groupadd students
+   5     36  # 2. Создаём пользователя user1 с UID 1234
+   6     37  sudo useradd -u 1234 -m -g students -s /bin/bash user1
+   7     38  # 3. Задаём пароль для user1
+   8     39  sudo passwd user1
+   9     40  # 4. Настраиваем смену пароля каждые 90 дней
+  10     41  sudo chage -M 90 user1
+  11     42  id user1
+  12     43  sudo chage -l user1
+  13     44  su - user1 -c "passwd"
+  14     45  # Ищем SUID-файлы и сохраняем вывод в suid_files.out
+  15     46  find / -perm -4000 -type f 2>/dev/null > ~/suid_files.out
+  16     47  # Посмотрим первые несколько найденных файлов
+  17     48  head -n 10 ~/suid_files.out
+  18     49  # Выводим процессы, где EUID=0, но RUID!=0
+  19     50  ps -eo pid,ruid,euid,user,comm | awk '$3 == 0 && $2 != 0' | tee ~/suid_processes.out
+  20     51  cat ~/suid_processes.out
+  21     52  # Создаём контрольный файл, доступный строго root (права 600)
+  22     53  sudo bash -c 'echo "SUCCESS: Confidential flag read by SUID binary!" > /root/secret.txt'
+  23     54  sudo chmod 600 /root/secret.txt
+  24     55  sudo ls -l /root/secret.txt
+  25     56  # Копируем cat в домашнюю директорию user1
+  26     57  sudo cp /bin/cat /home/user1/my_cat
+  27     58  # Делаем владельцем root и ставим SUID-бит
+  28     59  sudo chown root:root /home/user1/my_cat
+  29     60  sudo chmod u+s /home/user1/my_cat
+  30     61  ls -l /home/user1/my_cat
+  31     62  # Проверяем:
+  32     63  # Обычный cat -> Permission denied
+  33     64  su - user1 -c "cat /root/secret.txt"
+  34     65  sudo -u user1 cat /root/secret.txt
+  35     66  # Проверяем нашей SUID утилитой:
+  36     67  sudo -u user1 /home/user1/my_cat /root/secret.txt
+  37     68  # Копируем бинарник chown в домашнюю директорию user1
+  38     69  sudo cp /bin/chown /home/user1/my_chown
+  39     70  # Оставляем владельцем user1
+  40     71  sudo chown user1:students /home/user1/my_chown
+  41     72  sudo chmod 755 /home/user1/my_chown
+  42     73  # Назначаем capability cap_chown (e - effective, p - permitted)
+  43     74  sudo setcap cap_chown+ep /home/user1/my_chown
+  44     75  # Проверяем установленные capabilities
+  45     76  getcap /home/user1/my_chown
+  46     77  # Создадим тестовый файл от имени user1 в его домашней директории
+  47     78  su - user1 -c "touch /home/user1/test_file.txt"
+  48     79  # Создаем тестовый файл от имени user1:
+  49     80  sudo -u user1 touch /home/user1/test_file.txt
+  50     81  # Проверяем, что обычный chown выдает ошибку (Operation not permitted):
+  51     82  sudo -u user1 chown root /home/user1/test_file.txt
+  52     83  # Запускаем нашу утилиту my_chown с привилегией cap_chown:
+  53     84  sudo -u user1 /home/user1/my_chown root /home/user1/test_file.txt
+  54     85  # Проверяем владельца (должен стать root):
+  55     86  ls -l /home/user1/test_file.txt
+  56     87  sudo ls -l /home/user1/test_file.txt
+  57     88  which date timedatectl
+  58     89  # Создаём файл /etc/sudoers.d/user1-time
+  59     90  echo "user1 ALL=(ALL) NOPASSWD: /usr/bin/date, /usr/bin/timedatectl" | sudo tee /etc/sudoers.d/user1-time
+  60     91  # Создаём файл /etc/sudoers.d/user1-time
+  61     92  echo "user1 ALL=(ALL) NOPASSWD: /usr/bin/date, /usr/bin/timedatectl" | sudo tee /etc/sudoers.d/user1-time
+  62     93  # Обязательно выставляем строгие права 0440 (требование sudoers)
+  63     94  sudo chmod 0440 /etc/sudoers.d/user1-time
+  64     95  # Проверяем синтаксис всех файлов sudoers на ошибки
+  65     96  sudo visudo -c
+  66     97  # Смотрим список разрешённых команд sudo для user1
+  67     98  sudo -u user1 sudo -l
+  68     99  # Проверяем установку времени от имени user1 (ставим текущее время, чтобы ничего не сбить)
+  69    100  sudo -u user1 sudo /usr/bin/date -s "$(date '+%Y-%m-%d %H:%M:%S')"
+  70    101  echo "Студент: Илья Александрович Никоноров, Уникальный номер: М265919"
+  71    102  history > ~/history.out
+  72    103  stat /home/user1 > ~/mephi-artifacts/stat.out
+  73    104  mkdir -p ~/mephi-artifacts
+  74    105  mv ~/history.out ~/mephi-artifacts/history.out
+  75    106  stat /home/user1 > ~/mephi-artifacts/stat.out
+  76    107  stat /home/user1/my_cat >> ~/mephi-artifacts/stat.out
+  77    108  sudo chmod 755 /home/user1
+  78    109  sudo stat /home/user1 > ~/mephi-artifacts/stat.out
+  79    110  sudo stat /home/user1/my_cat >> ~/mephi-artifacts/stat.out
+  80    111  sudo stat /home/user1/my_chown >> ~/mephi-artifacts/stat.out
+  81    112  sudo chown $USER:$USER ~/mephi-artifacts/stat.out
+  82    113  cat ~/mephi-artifacts/stat.out
+  83    114  getcap /home/user1/my_chown > ~/mephi-artifacts/getcap.out
+  84    115  cp ~/suid_files.out ~/mephi-artifacts/suid_files.out
+  85    116  cp ~/suid_processes.out ~/mephi-artifacts/suid_processes.out
+  86    117  sudo cp /etc/passwd ~/mephi-artifacts/passwd
+  87    118  sudo cp /etc/group ~/mephi-artifacts/group
+  88    119  sudo cp /etc/sudoers ~/mephi-artifacts/sudoers
+  89    120  sudo cp /etc/sudoers.d/user1-time ~/mephi-artifacts/user1-time 2>/dev/null || true
+  90    121  sudo awk -F: 'BEGIN{OFS=":"} {if ($1 == "user1") print $0; else {$2="*"; print $0}}' /etc/shadow > ~/mephi-artifacts/shadow
+  91    122  sudo chown -R $USER:$USER ~/mephi-artifacts
+  92    123  ls -la ~/mephi-artifacts
+  93    124  chmod 644 ~/mephi-artifacts/sudoers ~/mephi-artifacts/user1-time
+  94    125  cat << 'EOF' > ~/mephi-artifacts/README.md
+  95    126  # ДЗ №1: Изучение средств защиты ОС GNU/Linux
+  96    127  **Курс:** Безопасность операционных систем  
+  97    128  **Репозиторий:** mephi-linux-security-2026  
+  98    129  ## Описание выполненной работы
+  99    130  | Раздел | Задание | Реализация / Команды | Артефакт |
+ 100    131  | :--- | :--- | :--- | :--- |
+ 101    132  | **Раздел 1** | Создание пользователя `user1` (UID 1234) в группе `students`, смена пароля каждые 90 дней | `groupadd students`<br>`useradd -u 1234 -m -g students -s /bin/bash user1`<br>`chage -M 90 user1` | `passwd`, `shadow`, `group`, `stat.out` |
+ 102    133  | **Раздел 2** | Мониторинг SUID-файлов и процессов с повышенными привилегиями (EUID=0, RUID!=0) | `find / -perm -4000 -type f`<br>`ps -eo pid,ruid,euid,user,comm \| awk '$3 == 0 && $2 != 0'` | `suid_files.out`, `suid_processes.out` |
+ 103    134  | **Раздел 3** | Изучение механизма set-UID | Копирование `/bin/cat` в `/home/user1/my_cat`<br>`chmod u+s /home/user1/my_cat` для чтения закрытого файла `/root/secret.txt` | `stat.out` |
+ 104    135  | **Раздел 4** | Изучение Linux Capabilities | Копирование `/bin/chown` в `/home/user1/my_chown`<br>`setcap cap_chown+ep /home/user1/my_chown` для смены владельца файла без root | `getcap.out`, `stat.out` |
+ 105    136  | **Раздел 5** | Делегирование прав через `sudo` | Настройка `/etc/sudoers.d/user1-time` с разрешением запуска `/usr/bin/date` и `/usr/bin/timedatectl` для `user1` | `sudoers`, `user1-time` |
+ 106    137  | **Раздел 6** | Сбор артефактов | Снятие скриншота терминала с табельным номером, сбор выводов утилит | `mephi-screenshot.png`, `history.out`, `*.out` |
+ 107    138  EOF
+ 108    139  history > ~/mephi-artifacts/history.out
+ 109    140  cd ~/mephi-artifacts
+ 110    141  history > history.out
